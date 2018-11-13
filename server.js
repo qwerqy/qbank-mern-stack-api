@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const express = require("express");
 const bodyParser = require("body-parser");
 const logger = require("morgan");
-// const Data = require("./data");
+const Data = require("./data");
 
 require("dotenv").config();
 
@@ -30,7 +30,7 @@ db.on("error", console.error.bind(console, "MongoDB Connection Error"));
 // bodyParser, parses the request body to be readable json format
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(logger(dev));
+app.use(logger("dev"));
 
 // Get all data
 router.get("/questions", (req, res) => {
