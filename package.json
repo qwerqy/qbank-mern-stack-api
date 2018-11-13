@@ -1,0 +1,18 @@
+{
+  "name": "qbank-server",
+  "version": "1.0.0",
+  "description": "this acts as the back end for qbank",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "qbank",
+    "backend"
+  ],
+  "author": "qwerqy",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^6.1.0"
+  }
+}
