@@ -30,10 +30,6 @@ client.connect(err => {
 
   const db = client.db(dbName);
 
-  // insertSurveys(db, () => {
-  //   client.close();
-  // });
-
   // bodyParser, parses the request body to be readable json format
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
@@ -41,12 +37,15 @@ client.connect(err => {
 
   // Get all data
   router.get("/questions", (req, res) => {
-    Data.find((err, data) => {
-      if (err) return res.json({ success: false, error: err });
-      return res.json({ success: true, data: data });
-    });
+    db.collection("surveys")
+      .find({})
+      .toArray((err, surveys) => {
+        if (err) return next(err);
+        res.json(surveys);
+      });
   });
 
+  // Create new survey collection from qsf upload.
   router.post("/questions", upload.single("qsf"), (req, res) => {
     // read uploaded qsf file from /uploads
     fs.readFile(req.file.path, (err, data) => {
