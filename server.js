@@ -1,8 +1,11 @@
-const mongoose = require("mongoose");
+const MongoClient = require("mongodb").MongoClient;
+const assert = require("assert");
 const express = require("express");
 const bodyParser = require("body-parser");
 const logger = require("morgan");
-const Data = require("./data");
+const multer = require("multer");
+const fs = require("fs");
+const upload = multer({ dest: "uploads/" });
 
 require("dotenv").config();
 
@@ -11,21 +14,24 @@ const app = express();
 const router = express.Router();
 
 //MongoDB database
-const dbRoute =
+const url =
   "mongodb+srv://qwerqy:amin1234@qbank-vldip.azure.mongodb.net/test?retryWrites=true";
 
-//Connect back end to database
-mongoose.connect(
-  dbRoute,
-  { useNewUrlParser: true }
-);
+//Database Name
+const dbName = "qbank";
 
-let db = mongoose.connection;
+//Creates a new MongoClient
+const client = new MongoClient(url, { useNewUrlParser: true });
 
-db.once("open", () => console.log("database connected"));
+//Connect server to database in cloud
+client.connect(err => {
+  assert.equal(null, err);
+  console.log("Connected successfully to server.");
 
-// if connection is unsuccessful
-db.on("error", console.error.bind(console, "MongoDB Connection Error"));
+  const db = client.db(dbName);
+
+  client.close();
+});
 
 // bodyParser, parses the request body to be readable json format
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -37,6 +43,13 @@ router.get("/questions", (req, res) => {
   Data.find((err, data) => {
     if (err) return res.json({ success: false, error: err });
     return res.json({ success: true, data: data });
+  });
+});
+
+router.post("/questions", upload.single("qsf"), (req, res) => {
+  fs.readFile(req.file.path, (err, data) => {
+    if (err) throw err;
+    console.log(data.toString());
   });
 });
 
