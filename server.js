@@ -30,33 +30,100 @@ client.connect(err => {
 
   const db = client.db(dbName);
 
-  client.close();
-});
+  // insertSurveys(db, () => {
+  //   client.close();
+  // });
 
-// bodyParser, parses the request body to be readable json format
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-app.use(logger("dev"));
+  // bodyParser, parses the request body to be readable json format
+  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use(bodyParser.json());
+  app.use(logger("dev"));
 
-// Get all data
-router.get("/questions", (req, res) => {
-  Data.find((err, data) => {
-    if (err) return res.json({ success: false, error: err });
-    return res.json({ success: true, data: data });
+  // Get all data
+  router.get("/questions", (req, res) => {
+    Data.find((err, data) => {
+      if (err) return res.json({ success: false, error: err });
+      return res.json({ success: true, data: data });
+    });
   });
-});
 
-router.post("/questions", upload.single("qsf"), (req, res) => {
-  fs.readFile(req.file.path, (err, data) => {
-    if (err) throw err;
-    console.log(data.toString());
+  router.post("/questions", upload.single("qsf"), (req, res) => {
+    // read uploaded qsf file from /uploads
+    fs.readFile(req.file.path, (err, data) => {
+      if (err) throw err;
+      let survey = JSON.parse(data.toString());
+      // Create an array of questions for current processed survey
+      let questionsArray = [];
+      const surveyElements = survey.SurveyElements;
+
+      for (const sq of surveyElements) {
+        if (sq.Element === "SQ") {
+          // Getting the answers for the questions, placing them in
+          // an array.
+          let answersArray = [];
+
+          const x = sq.Payload;
+          // Filter if chosen Payload has Choices
+          if (!x.hasOwnProperty("Choices")) {
+            let answer = {
+              input: ""
+            };
+            answersArray.push(answer);
+          } else {
+            const choices = sq.Payload.Choices;
+            // Convert Object into array of objects. (Choices)
+            const parsedChoices = Object.keys(choices).map(i => choices[i]);
+            for (const a of parsedChoices) {
+              answer = {
+                input: a.Display
+              };
+              answersArray.push(answer);
+            }
+          }
+
+          // Creating the question object and pushing it into an array.
+          question = {
+            qid: sq.PrimaryAttribute,
+            title: sq.SecondaryAttribute,
+            answers: answersArray
+          };
+          questionsArray.push(question);
+          // console.table(answersArray);
+        }
+      }
+
+      // console.table(questionsArray);
+
+      // Insertion
+      db.collection("surveys").insertOne(
+        {
+          sid: survey.SurveyEntry.SurveyID,
+          name: survey.SurveyEntry.SurveyName,
+          questions: questionsArray
+        },
+        (err, result) => {
+          assert.equal(err, null);
+          console.log("File has been uploaded to database.");
+        }
+      );
+    });
+    // Once upload is done, local file will be removed.
+    fs.unlink(req.file.path, err => {
+      if (err) {
+        console.log("Failed to unlink qsf file. Err: " + err);
+      } else {
+        console.log("Removed qsf file after upload...done.");
+      }
+    });
+    // Once all is done, page will reload.
+    res.redirect(req.get("referer"));
   });
+
+  // Append api to http request
+  app.use("/api", router);
+
+  // Launch backend to port 3001
+  app.listen(API_PORT, () =>
+    console.log(`Connected! Currently listening ${API_PORT}`)
+  );
 });
-
-// Append api to http request
-app.use("/api", router);
-
-// Launch backend to port 3001
-app.listen(API_PORT, () =>
-  console.log(`Connected! Currently listening ${API_PORT}`)
-);
